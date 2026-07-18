@@ -7,6 +7,7 @@ from queuectl.db import init_db, get_db_connection, get_utc_now
 from queuectl.config import Config
 from queuectl import manager
 from queuectl.worker import Worker
+from queuectl.dashboard import start_dashboard
 
 def format_relative_time(iso_str: str) -> str:
     """Formats an ISO timestamp to a human-readable relative time."""
@@ -335,6 +336,10 @@ def main():
     config_set.add_argument("key", choices=["max-retries", "backoff-base", "default-timeout"], help="Config key to set")
     config_set.add_argument("value", help="Value to set")
     
+    # Dashboard Command
+    dashboard_parser = subparsers.add_parser("dashboard", help="Start the built-in monitor web dashboard")
+    dashboard_parser.add_argument("--port", type=int, default=8000, help="Port to run dashboard server on (default: 8000)")
+    
     args = parser.parse_args()
     
     # Route execution
@@ -350,6 +355,8 @@ def main():
         handle_dlq(args)
     elif args.command == "config":
         handle_config(args)
+    elif args.command == "dashboard":
+        start_dashboard(args.port)
 
 if __name__ == "__main__":
     main()
