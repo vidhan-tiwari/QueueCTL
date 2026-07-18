@@ -244,5 +244,33 @@ class TestQueueCTL(unittest.TestCase):
         self.assertIn("timed out", db_job["error_log"].lower())
         conn.close()
 
+    def test_background_worker_spawning(self):
+        """Tests that manager.start_workers spawns workers that successfully register in the database."""
+        # Clear workers first
+        conn = get_db_connection()
+        with conn:
+            conn.execute("DELETE FROM workers;")
+        conn.close()
+        
+        # Start 1 worker
+        spawned = manager.start_workers(1)
+        self.assertEqual(spawned, 1)
+        
+        # Wait up to 3 seconds for it to start and register
+        registered = False
+        for _ in range(30):
+            time.sleep(0.1)
+            conn = get_db_connection()
+            workers = conn.execute("SELECT * FROM workers;").fetchall()
+            conn.close()
+            if len(workers) == 1:
+                registered = True
+                break
+                
+        # Stop workers gracefully
+        manager.stop_workers()
+        
+        self.assertTrue(registered, "Worker process failed to start and register in the database.")
+
 if __name__ == "__main__":
     unittest.main()

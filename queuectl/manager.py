@@ -7,16 +7,17 @@ from queuectl.db import get_db_connection
 def start_workers(count: int):
     """Spawns N background worker processes running 'queuectl worker run'."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    main_path = os.path.join(script_dir, "main.py")
+    workspace_dir = os.path.dirname(script_dir)
     
-    cmd = [sys.executable, main_path, "worker", "run"]
+    cmd = [sys.executable, "-m", "queuectl.main", "worker", "run"]
     
     creation_flags = 0
     if sys.platform == "win32":
-        # Run detached from the controlling console on Windows
         creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
 
     spawned = 0
+    env = os.environ.copy()
+    env["PYTHONPATH"] = workspace_dir
     for _ in range(count):
         try:
             # Start process in the background
@@ -25,12 +26,13 @@ def start_workers(count: int):
                 creationflags=creation_flags,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                close_fds=True
+                close_fds=True,
+                cwd=workspace_dir,
+                env=env
             )
             spawned += 1
         except Exception as e:
             print(f"Error spawning worker process: {e}", file=sys.stderr)
-            
     return spawned
 
 def stop_workers():
