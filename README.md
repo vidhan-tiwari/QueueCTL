@@ -122,6 +122,21 @@ Active Workers (2):
 =========================================================
 ```
 
+### Web Monitoring Dashboard (`queuectl dashboard`)
+Runs a built-in lightweight HTTP server to monitor job queues and active workers in real-time via a clean web interface (auto-refreshes every 3 seconds).
+```bash
+queuectl dashboard --port 8000
+```
+*Expected Output:*
+```text
+=====================================================
+QueueCTL Monitor Dashboard active!
+URL: http://localhost:8000/
+Press Ctrl+C to stop the dashboard server.
+=====================================================
+```
+Open `http://localhost:8000/` in your browser to view the real-time dark-mode dashboard!
+
 ### Listing Jobs (`queuectl list`)
 Lists jobs and their details, optionally filtered by state.
 ```bash
