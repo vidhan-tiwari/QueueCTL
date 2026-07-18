@@ -139,23 +139,47 @@ class Worker:
         error_msg = ""
         timed_out = False
         
+        import platform
+        
         try:
-            # Run command using subprocess
-            res = subprocess.run(
+            # For Unix, start in a new process group to support SIGKILL on the group
+            preexec = None
+            if platform.system() != "Windows":
+                preexec = os.setsid
+                
+            p = subprocess.Popen(
                 command,
                 shell=True,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout
+                preexec_fn=preexec
             )
-            exit_code = res.returncode
-            output = f"STDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}\n"
-        except subprocess.TimeoutExpired as te:
-            timed_out = True
-            exit_code = -9
-            output = f"STDOUT (partial):\n{te.stdout.decode('utf-8', errors='ignore') if te.stdout else ''}\n" \
-                     f"STDERR (partial):\n{te.stderr.decode('utf-8', errors='ignore') if te.stderr else ''}\n"
-            error_msg = f"Job timed out after {timeout} seconds."
+            
+            try:
+                stdout, stderr = p.communicate(timeout=timeout)
+                exit_code = p.returncode
+                output = f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}\n"
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                exit_code = -9
+                error_msg = f"Job timed out after {timeout} seconds."
+                
+                # Kill the process tree
+                if platform.system() == "Windows":
+                    subprocess.run(f"taskkill /F /T /PID {p.pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                else:
+                    try:
+                        os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                    except Exception:
+                        pass
+                
+                # Clean up and capture whatever output was produced
+                try:
+                    stdout, stderr = p.communicate(timeout=1.0)
+                    output = f"STDOUT (partial):\n{stdout}\nSTDERR (partial):\n{stderr}\n"
+                except Exception:
+                    output = "STDOUT (partial): N/A\nSTDERR (partial): N/A\n"
         except Exception as e:
             exit_code = -2
             error_msg = f"Execution failed: {str(e)}"
