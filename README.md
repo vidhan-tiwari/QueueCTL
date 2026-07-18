@@ -135,7 +135,9 @@ URL: http://localhost:8000/
 Press Ctrl+C to stop the dashboard server.
 =====================================================
 ```
-Open `http://localhost:8000/` in your browser to view the real-time dark-mode dashboard!
+Open `http://localhost:8000/` in your browser to view the real-time dark-mode dashboard:
+
+![QueueCTL Web Dashboard](dashboard.png)
 
 ### Listing Jobs (`queuectl list`)
 Lists jobs and their details, optionally filtered by state.
